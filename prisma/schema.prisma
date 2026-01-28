@@ -1,44 +1,20 @@
 // prisma/schema.prisma
 
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"  // Локальная база в файле
+}
+
 model Proverb {
-  id          String     @id @default(uuid())
-  text        String     // Текст пословицы
-  language    String     // Язык (ru, en, es, ar, ja…)
-  transliteration String? // Транслитерация (если нужно)
-  translation String?    // Перевод на русский/английский
-  meaning     String?    // Смысл/толкование
-  origin      String?    // Народ, регион, страна
-  context     String?    // Культурный или исторический контекст
-  addedBy     User?      @relation(fields: [addedById], references: [id])
-  addedById   String?
-  aiAnalysis  AiAnalysis? // Связь с анализом от ИИ
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-model AiAnalysis {
-  id           String   @id @default(uuid())
-  summary      String   // Краткое объяснение смысла
-  culturalContext String? // Культурные нюансы
-  usageExample String?     // Пример употребления
-  relatedProverbs String? // Похожие пословицы
-  modelUsed    String      // Какая модель ИИ использовалась (GigaChat, GPT и т.д.)
-  processedAt  DateTime    @default(now())
-  proverb      Proverb     @relation(fields: [proverbId], references: [id])
-  proverbId    String      @unique
-}
-
-model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  name          String?
-  role          Role      @default(USER)
-  contributed   Proverb[]
-  createdAt     DateTime  @default(now())
-}
-
-enum Role {
-  USER
-  MODERATOR
-  ADMIN
+  id          String   @id @default(uuid())
+  text        String   // Текст пословицы
+  language    String   // Язык: ru, en, es и т.д.
+  translation String?  // Перевод
+  meaning     String?  // Значение/толкование
+  origin      String?  // Народ, страна
+  createdAt   DateTime @default(now())
 }
