@@ -9,6 +9,9 @@ export async function GET() {
     const proverbs = await prisma.proverb.findMany({
       orderBy: { createdAt: 'desc' },
       take: 20,
+      include: {
+        author: { select: { id: true, name: true, email: true } },
+      },
     })
     return NextResponse.json(proverbs)
   } catch (error) {
@@ -24,10 +27,7 @@ export async function POST(request: NextRequest) {
     const { text, language, translation, meaning, origin } = body
 
     if (!text || !language) {
-      return NextResponse.json(
-        { error: 'Text and language are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Text and language are required' }, { status: 400 })
     }
 
     const proverb = await prisma.proverb.create({
@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
         translation: translation || null,
         meaning: meaning || null,
         origin: origin || null,
+      },
+      include: {
+        author: { select: { id: true, name: true, email: true } },
       },
     })
 

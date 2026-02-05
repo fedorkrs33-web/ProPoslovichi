@@ -7,11 +7,12 @@ import { Plus, X } from 'lucide-react'
 interface Proverb {
   id: string
   text: string
-  language: string
+  language?: string
   translation?: string
   meaning?: string
   origin?: string
   createdAt: string
+  author?: { id: string; name: string | null; email: string | null } | null
 }
 
 export default function HomePage() {
@@ -70,7 +71,8 @@ export default function HomePage() {
       console.error('Error:', error)
       alert('Не удалось отправить данные')
     } finally {
-    setLoading(false) // ← Всегда выключаем, даже если ошибка
+      setLoading(false) // ← Всегда выключаем, даже если ошибка
+    }
   }
 
 
@@ -109,7 +111,7 @@ export default function HomePage() {
       setAnalyzing(null)
     }
   }
-}
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -146,31 +148,45 @@ export default function HomePage() {
                 {proverbs.map((proverb) => (
                   <div key={proverb.id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow border">
                     <h3 className="text-xl font-bold text-gray-900 mb-2">{proverb.text}</h3>
-                    <p><strong>Язык:</strong> {proverb.language}</p>
+                    {proverb.language && <p><strong>Язык:</strong> {proverb.language}</p>}
                     {proverb.translation && <p><strong>Перевод:</strong> {proverb.translation}</p>}
-                    {proverb.meaning && <p><strong>Значение:</strong> {proverb.meaning}</p>}
+                    {proverb.meaning && <p><strong>Трактовка смысла:</strong> {proverb.meaning}</p>}
                     {proverb.origin && <p><strong>Происхождение:</strong> {proverb.origin}</p>}
                     <p className="text-sm text-gray-500 mt-2">
-                      {new Date(proverb.createdAt).toLocaleDateString()}
+                      <strong>Дата внесения:</strong>{' '}
+                      {new Date(proverb.createdAt).toLocaleDateString('ru-RU')}
+                      {proverb.author && (
+                        <> · <strong>Внёс:</strong> {proverb.author.name || proverb.author.email || '—'}</>
+                      )}
                     </p>
 
                     <button
                       onClick={() => handleAnalyze(proverb)}
                       disabled={analyzing === proverb.id}
-                      className="mt-2 text-sm text-blue-600 hover:underline"
+                      className="mt-2 text-sm text-blue-600 hover:underline disabled:opacity-70"
                     >
                       {analyzing === proverb.id ? 'Анализ...' : '🔍 Анализировать с помощью ИИ'}
                     </button>
 
                     {analysis[proverb.id] && (
                       <div className="mt-3 p-3 bg-blue-50 rounded text-sm">
-                        <p><strong>Смысл:</strong> {analysis[proverb.id].summary}</p>
-                        <p><strong>Контекст:</strong> {analysis[proverb.id].culturalContext}</p>
-                        <p><strong>Пример:</strong> {analysis[proverb.id].usageExample}</p>
-                        <p><strong>Похожие:</strong> {analysis[proverb.id].relatedProverbs}</p>
-                        <p className="text-xs text-gray-500">
-                          Модель: {analysis[proverb.id].modelUsed}
-                        </p>
+                        {analysis[proverb.id].summary && (
+                          <p><strong>Смысл:</strong> {analysis[proverb.id].summary}</p>
+                        )}
+                        {analysis[proverb.id].culturalContext && (
+                          <p><strong>Контекст:</strong> {analysis[proverb.id].culturalContext}</p>
+                        )}
+                        {analysis[proverb.id].usageExample && (
+                          <p><strong>Пример:</strong> {analysis[proverb.id].usageExample}</p>
+                        )}
+                        {analysis[proverb.id].relatedProverbs && (
+                          <p><strong>Похожие:</strong> {analysis[proverb.id].relatedProverbs}</p>
+                        )}
+                        {analysis[proverb.id].modelUsed && (
+                          <p className="text-xs text-gray-500">
+                            Модель: {analysis[proverb.id].modelUsed}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>

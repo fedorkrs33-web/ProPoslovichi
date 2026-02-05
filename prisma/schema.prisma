@@ -1,4 +1,5 @@
 // prisma/schema.prisma
+// Модели: пользователи (NextAuth), пословицы с автором и трактовкой смысла
 
 generator client {
   provider = "prisma-client-js"
@@ -6,18 +7,69 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"  // Локальная база в файле
+  url      = "file:./dev.db"
 }
+
+// --- NextAuth: пользователи и сессии ---
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  proverbs      Proverb[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+// --- Пословицы ---
 
 model Proverb {
   id          String   @id @default(uuid())
   text        String   // Текст пословицы
-  language    String   // Язык: ru, en, es и т.д.
+  language    String?  // Язык: ru, en, es и т.д.
   translation String?  // Перевод
-  meaning     String?  // Значение/толкование
-  origin      String?  // Народ, страна
-  createdAt   DateTime @default(now())
+  meaning     String?  // Трактовка смысла
+  origin      String?  // Происхождение (народ, страна)
+  createdAt   DateTime @default(now()) // Дата внесения в базу
+  authorId    String?  // Кто внёс (зарегистрированный пользователь)
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  aiAnalysis  AiAnalysis?
 }
+
 model AiAnalysis {
   id              String   @id @default(uuid())
   summary         String   // Краткое объяснение смысла
