@@ -1,31 +1,46 @@
-## Что есть в системе (сущности):
+## База данных ProPoslovichi
 
-Note - заметки
-User — владелец промтов, автор, голосующий
-Prompt — сам промт (может быть приватным или публичным)
-Tag — метки (многие-ко-многим с Prompt)
-Vote — голос пользователя за публичный промт (уникально: один пользователь → один голос на промт)
-(опционально) Collection / Folder — папки/коллекции для организации
-(опционально) PromptVersion — версии промта (история изменений)
+Среда разработки: SQLite (`file:./dev.db`). В проде планируется Postgres/Neon.
 
-## Ключевые правила:
+### Сущности
 
-- Публичность — это свойство Prompt (visibility)
-- Голосовать можно только по публичным (проверяется на уровне приложения; можно усилить триггером/констрейнтом позже)
-- Голос уникален: (userId, promptId) — уникальный индекс
+- **User** — пользователь, автор пословиц (используется NextAuth).
+- **Account** — OAuth‑аккаунт пользователя (Яндекс/Google и т.д.).
+- **Session** — сессия авторизации (NextAuth).
+- **VerificationToken** — токены верификации (если понадобятся).
+- **Proverb** — пословица с метаданными.
+- **AiAnalysis** — сохранённый ответ ИИ по пословице (один к одному).
 
-## Схема базы данных
-- Note: id, ownerId -> User, title, createdAt
-- User: id (cuid), email unique, name optional, createdAt
-- Prompt: id, ownerId -> User, title, content, description optional, categoryId -> Category,
-  visibility (PRIVATE|PUBLIC, default PRIVATE), createdAt, updatedAt, publishedAt nullable
-- Vote: id, userId -> User, promptId -> Prompt, value int default 1, createdAt
-- Category: id, category
-- Ограничение: один пользователь может проголосовать за промт только один раз:
-  UNIQUE(userId, promptId)
-- Индексы:
-  Prompt(ownerId, updatedAt)
-  Prompt(visibility, createdAt)
-  Vote(promptId)
-  Vote(userId)
-- onDelete: Cascade для связей
+### Схема (Prisma)
+
+- **User**  
+  `id (cuid)`, `name?`, `email? @unique`, `emailVerified?`, `image?`  
+  Связи: `accounts[]`, `sessions[]`, `proverbs[]`.
+
+- **Account**  
+  `id (cuid)`, `userId -> User`, `type`, `provider`, `providerAccountId`, токены/сроки действия.  
+  `@@unique([provider, providerAccountId])`.
+
+- **Session**  
+  `id (cuid)`, `sessionToken @unique`, `userId -> User`, `expires`.
+
+- **VerificationToken**  
+  `identifier`, `token`, `expires`, `@@unique([identifier, token])`.
+
+- **Proverb**  
+  `id (uuid)`, `text`, `language?`, `translation?`,  
+  `meaning?` (трактовка смысла), `origin?` (происхождение),  
+  `createdAt @default(now())`,  
+  `authorId? -> User (onDelete SetNull)`,  
+  `aiAnalysis? -> AiAnalysis` (один к одному).
+
+- **AiAnalysis**  
+  `id (uuid)`, `summary`, `culturalContext?`, `usageExample?`, `relatedProverbs?`,  
+  `modelUsed`, `processedAt @default(now())`,  
+  `proverbId @unique -> Proverb`.
+
+### Правила доступа
+
+- Пословицы могут добавлять только авторизованные пользователи (User).  
+- Автор пословицы хранится в `Proverb.authorId`; при удалении пользователя ссылка обнуляется.  
+- Анализ ИИ хранится в `AiAnalysis` и ссылается на одну пословицу (1:1).
