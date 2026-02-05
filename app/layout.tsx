@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'ProStore - Каталог промтов',
-  description: 'Каталог лучших промтов для ваших задач',
+  title: 'ProPoslovichi - Энциклопедия пословиц и поговорок',
+  description: 'Интерактивная энциклопедия пословиц и поговорок народов мира',
 }
 
 export default function RootLayout({

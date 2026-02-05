@@ -18,3 +18,16 @@ model Proverb {
   origin      String?  // Народ, страна
   createdAt   DateTime @default(now())
 }
+model AiAnalysis {
+  id              String   @id @default(uuid())
+  summary         String   // Краткое объяснение смысла
+  culturalContext String?  // Культурные нюансы
+  usageExample    String?  // Пример употребления
+  relatedProverbs String?  // Похожие пословицы (через запятую)
+  modelUsed       String   // Какая модель использовалась (GigaChat, GPT и т.д.)
+  processedAt     DateTime @default(now())
+
+  // Связь с пословицей (один к одному)
+  proverb         Proverb  @relation(fields: [proverbId], references: [id])
+  proverbId       String   @unique
+}
