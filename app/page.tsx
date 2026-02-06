@@ -1,8 +1,11 @@
 'use client'
 
+import EditProverbModal from '@/components/EditProverbModal'
+import { useProverbs } from '@/hooks/useProverbs'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, X } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 
 interface Proverb {
   id: string
@@ -16,6 +19,8 @@ interface Proverb {
 }
 
 export default function HomePage() {
+  const [editingProverb, setEditingProverb] = useState<Proverb | null>(null)
+  const { data: session } = useSession()
   const [proverbs, setProverbs] = useState<Proverb[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -122,80 +127,113 @@ export default function HomePage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero */}
-        <section className="bg-gradient-to-r from-green-600 to-blue-800 text-white py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">ProPoslovichi</h1>
-            <p className="text-xl mb-8">Энциклопедия пословиц народов мира</p>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Добавить пословицу
-            </button>
-          </div>
-        </section>
+      {/* Кнопка авторизации под заголовком */}
+      <section className="bg-blue-50 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          {session ? (
+            <p className="text-gray-700">
+              Привет, <strong>{session.user.name || session.user.email}</strong>!
+            </p>
+          ) : (
+            <Link href="/auth/login">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 px-6 py-2 bg-yellow-400 text-gray-800 rounded-lg font-semibold hover:bg-yellow-500 transition-colors"
+                title="Войдите, чтобы добавлять пословицы и использовать ИИ-анализ"
+              >
+                🔐 Войти
+              </button>
+            </Link>
+          )}
+        </div>
+      </section>
 
-        {/* Список пословиц */}
-        <section className="py-12 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6">Последние</h2>
-            {proverbs.length === 0 ? (
-              <p className="text-gray-600">Загрузка...</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {proverbs.map((proverb) => (
-                  <div key={proverb.id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow border">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{proverb.text}</h3>
-                    {proverb.language && <p><strong>Язык:</strong> {proverb.language}</p>}
-                    {proverb.translation && <p><strong>Перевод:</strong> {proverb.translation}</p>}
-                    {proverb.meaning && <p><strong>Трактовка смысла:</strong> {proverb.meaning}</p>}
-                    {proverb.origin && <p><strong>Происхождение:</strong> {proverb.origin}</p>}
-                    <p className="text-sm text-gray-500 mt-2">
-                      <strong>Дата внесения:</strong>{' '}
-                      {new Date(proverb.createdAt).toLocaleDateString('ru-RU')}
-                      {proverb.author && (
-                        <> · <strong>Внёс:</strong> {proverb.author.name || proverb.author.email || '—'}</>
-                      )}
-                    </p>
+      {/* Список пословиц в виде таблицы */}
+      <section className="py-6 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Последние пословицы</h2>
 
-                    <button
-                      onClick={() => handleAnalyze(proverb)}
-                      disabled={analyzing === proverb.id}
-                      className="mt-2 text-sm text-blue-600 hover:underline disabled:opacity-70"
-                    >
-                      {analyzing === proverb.id ? 'Анализ...' : '🔍 Анализировать с помощью ИИ'}
-                    </button>
+          {loading ? (
+            <p className="text-gray-600">Загрузка...</p>
+          ) : proverbs.length === 0 ? (
+            <p className="text-gray-600">Пока нет ни одной пословицы.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border border-gray-300 rounded-lg shadow-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Текст пословицы</th>
+                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Языковая группа</th>
+                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Трактовка</th>
+                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700 border-b">Действия</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {proverbs.map((proverb) => (
+                    <tr key={proverb.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 text-sm text-gray-900">{proverb.text}</td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {proverb.language || '—'}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {proverb.meaning || '—'}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAnalyze(proverb)}
+                            disabled={analyzing === proverb.id}
+                            className="text-blue-600 hover:text-blue-800 text-xs font-medium disabled:opacity-60"
+                            title="Запустить ИИ-анализ смысловой нагрузки, контекста и культурных ассоциаций"
+                          >
+                            {analyzing === proverb.id
+                              ? 'Анализ...'
+                              : analysis[proverb.id]
+                                ? '✅ Анализ'
+                                : '🔍 Анализ ИИ'}
+                          </button>
+                          <button
+                            onClick={() => setEditingProverb(proverb)}
+                            className="text-green-600 hover:text-green-800 text-xs font-medium"
+                            title="Открыть редактор для изменения текста, перевода или происхождения"
+                          >
+                            📝 Редактор
+                          </button>
+                        </div>
 
-                    {analysis[proverb.id] && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded text-sm">
-                        {analysis[proverb.id].summary && (
-                          <p><strong>Смысл:</strong> {analysis[proverb.id].summary}</p>
+                        {/* Блок анализа под строкой (опционально) */}
+                        {analysis[proverb.id] && !analysis[proverb.id].error && (
+                          <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-gray-700 border">
+                            <p><strong>Смысл:</strong> {analysis[proverb.id].summary}</p>
+                            {analysis[proverb.id].culturalContext && (
+                              <p><strong>Контекст:</strong> {analysis[proverb.id].culturalContext}</p>
+                            )}
+                          </div>
                         )}
-                        {analysis[proverb.id].culturalContext && (
-                          <p><strong>Контекст:</strong> {analysis[proverb.id].culturalContext}</p>
+
+                        {analysis[proverb.id]?.error && (
+                          <p className="text-red-600 text-xs mt-1">{analysis[proverb.id].error}</p>
                         )}
-                        {analysis[proverb.id].usageExample && (
-                          <p><strong>Пример:</strong> {analysis[proverb.id].usageExample}</p>
-                        )}
-                        {analysis[proverb.id].relatedProverbs && (
-                          <p><strong>Похожие:</strong> {analysis[proverb.id].relatedProverbs}</p>
-                        )}
-                        {analysis[proverb.id].modelUsed && (
-                          <p className="text-xs text-gray-500">
-                            Модель: {analysis[proverb.id].modelUsed}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+    </main> 
+
+      {/* Модальное окно редактирования */}
+      {editingProverb && (
+        <EditProverbModal
+          proverb={editingProverb}
+          isOpen={true}
+          onClose={() => setEditingProverb(null)}
+          onSuccess={refetch} // Обновляет список пословиц
+        />
+      )}
 
       <footer className="bg-gray-800 text-white p-4 text-center">
         <p>© 2026 ProPoslovichi. Все права защищены.</p>

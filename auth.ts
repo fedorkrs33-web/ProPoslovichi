@@ -1,31 +1,31 @@
-import NextAuth from 'next-auth'
-import Google from 'next-auth/providers/google'
+// auth.ts
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { prisma } from '@/lib/prisma'
+import { PrismaClient } from '@prisma/client'
+import YandexProvider from 'next-auth/providers/yandex'
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const prisma = new PrismaClient()
+
+export const authConfig = {
+  secret: process.env.AUTH_SECRET,
+
   adapter: PrismaAdapter(prisma),
+
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    YandexProvider({
+      clientId: process.env.YANDEX_CLIENT_ID || '',
+      clientSecret: process.env.YANDEX_CLIENT_SECRET || '',
     }),
   ],
-  session: {
-    strategy: 'database',
+
+  pages: {
+    signIn: '/auth/login',
   },
+
   callbacks: {
-    async session({ session, user }) {
-      if (session.user && user) {
-        session.user.id = user.id
-      }
+    session({ session, token }) {
+      if (token.sub) session.user.id = token.sub
       return session
     },
   },
-  pages: {
-    signIn: '/login',
-  },
-  trustHost: true,
-  debug: process.env.NODE_ENV === 'development',
-})
+}
 
