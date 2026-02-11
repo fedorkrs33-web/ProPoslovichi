@@ -21,14 +21,10 @@ export function useProverbs() {
     setLoading(true)
     try {
       const res = await fetch('/api/proverbs')
-      if (res.ok) {
-        const data: Proverb[] = await res.json()
-        setProverbs(data)
-      } else {
-        console.error('Ошибка загрузки:', await res.text())
-      }
+      const data = await res.json()
+      setProverbs(data)
     } catch (error) {
-      console.error('Сеть:', error)
+      console.error('Failed to load proverbs:', error)
     } finally {
       setLoading(false)
     }
@@ -38,7 +34,10 @@ export function useProverbs() {
     fetchProverbs()
   }, [])
 
-  const refetch = () => fetchProverbs()
-
-  return { proverbs, loading, refetch }
+  return {
+    proverbs,
+    loading,
+    refetch: fetchProverbs,
+  }
 }
+

@@ -1,7 +1,8 @@
 // components/EditProverbModal.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 interface Proverb {
   id: string
@@ -34,6 +35,27 @@ export default function EditProverbModal({
   })
 
   const [submitting, setSubmitting] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Фокус при открытии
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 100)
+    }
+  }, [isOpen])
+
+  // Закрытие по Escape
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    if (isOpen) {
+      window.addEventListener('keydown', handleEsc)
+    }
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -67,7 +89,7 @@ export default function EditProverbModal({
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
         <h2 className="text-xl font-bold mb-4">Редактировать пословицу</h2>
@@ -75,6 +97,7 @@ export default function EditProverbModal({
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Текст *</label>
             <input
+              ref={inputRef}
               type="text"
               name="text"
               value={formData.text}
@@ -147,6 +170,7 @@ export default function EditProverbModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
